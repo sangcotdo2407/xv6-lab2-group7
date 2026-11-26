@@ -1,5 +1,5 @@
 // Chương trình kiểm thử system call pgaccess().
-// Mã test (P1..P12) và các pha (A..D) theo TASK_ASSIGNMENT.md mục 6.
+// Mã test (P1..P13) và các pha (A..D) theo TASK_ASSIGNMENT.md mục 6.
 
 #include "kernel/types.h"
 #include "kernel/riscv.h"
@@ -51,13 +51,20 @@ write_page(int i)
   *p = (char)i;
 }
 
+// Mask được đặt về 0 trước vì kernel chỉ ghi (len+7)/8 byte.
+static int
+scan_from(char *base, int len, uint64 *mask)
+{
+  *mask = 0;
+  return pgaccess(base, len, mask);
+}
+
 // Gọi pgaccess() trên len trang đầu của vùng. Mask nằm trên stack,
 // ngoài vùng, nên việc ghi mask không chạm trang nào trong vùng.
 static int
 scan(int len, uint64 *mask)
 {
-  *mask = 0;
-  return pgaccess(region, len, mask);
+  return scan_from(region, len, mask);
 }
 
 // Bốn pha A-D của quy trình kiểm chứng bit PTE_A.
@@ -118,19 +125,36 @@ test_len(void)
   check(pgaccess(region, -1, &m) == -1, "P4: len = -1 rejected");
 }
 
+// base lệch trang được làm tròn xuống trang chứa nó.
 static void
 test_base(void)
 {
   uint64 m;
+  int r;
 
-  check(pgaccess(region + 1, 1, &m) == -1, "P5: base = region + 1 rejected");
-  check(pgaccess(region + PGSIZE / 2, 1, &m) == -1,
-        "P5: base = region + PGSIZE/2 rejected");
+  scan(NPAGES, &m);
+  write_page(1);
+  r = scan_from(region + 1, 2, &m);
+  check_mask(r, m, bit(1), "P5: base = region + 1 starts at page 0");
+
+  write_page(1);
+  write_page(4);
+  r = scan_from(region + PGSIZE + PGSIZE / 2, 4, &m);
+  check_mask(r, m, bit(0) | bit(3),
+             "P5: base = region + 1.5 pages starts at page 1");
+
+  write_page(NPAGES - 1);
+  r = scan_from(region + NPAGES * PGSIZE - 1, 1, &m);
+  check_mask(r, m, bit(0), "P5: base = last byte of the region maps to page 63");
 
   check(pgaccess(region + NPAGES * PGSIZE, 1, &m) == -1,
         "P6: page at sbrk(0) rejected");
   check(pgaccess(region + (NPAGES - 1) * PGSIZE, 2, &m) == -1,
         "P6: range crossing sbrk(0) rejected");
+  check(pgaccess(region + NPAGES * PGSIZE - 1, 2, &m) == -1,
+        "P6: unaligned base whose range crosses sbrk(0) rejected");
+  check(pgaccess((void *)0xffffffffffffffffUL, 1, &m) == -1,
+        "P6: base = 0xffffffffffffffff rejected");
   check(pgaccess((void *)MAXVA, 1, &m) == -1, "P6: base = MAXVA rejected");
   check(pgaccess((void *)0xffffffffffff0000UL, 1, &m) == -1,
         "P6: base = 0xffffffffffff0000 rejected");
@@ -160,6 +184,24 @@ test_bad_mask(void)
   r = scan(NPAGES, &m);
   check_mask(r, m, bit(10) | bit(11),
              "P11: failed calls kept the earlier accesses");
+}
+
+// Mask nằm trong chính vùng đang kiểm tra: kernel ghi mask qua direct map
+// nên không bật PTE_A của trang chứa mask.
+static void
+test_mask_in_region(void)
+{
+  volatile uchar *inside = (uchar *)region + 3 * PGSIZE;
+  uint64 m;
+  int r, r2;
+
+  scan(NPAGES, &m);
+  write_page(1);
+  r = pgaccess(region, 4, (void *)inside);
+  r2 = scan(4, &m);
+  check(r == 0 && r2 == 0 && m == 0,
+        "P13: writing the mask into page 3 does not set its A bit");
+  check(*inside == 0x02, "P13: mask stored inside the region is correct");
 }
 
 // Kernel phải ghi đúng (len+7)/8 byte của mask.
@@ -256,6 +298,31 @@ test_migrate(void)
   check(bad == 0, "P12: 20 clear/sleep/touch rounds report exactly one page");
 }
 
+// Cách dùng như pgaccess_test() mà đề gợi ý: buffer lấy từ malloc nên lệch
+// 16 byte so với đầu trang. Chạy cuối cùng vì malloc làm sbrk(0) dời đi.
+static void
+test_malloc(void)
+{
+  volatile char *buf;
+  uint64 m;
+  int r;
+
+  buf = malloc(32 * PGSIZE);
+  if(buf == 0){
+    check(0, "P5: malloc(32*PGSIZE)");
+    return;
+  }
+  check((uint64)buf % PGSIZE != 0, "P5: malloc'd buffer is not page-aligned");
+  scan_from((char *)buf, 32, &m);
+  buf[PGSIZE * 1] += 1;
+  buf[PGSIZE * 2] += 1;
+  buf[PGSIZE * 30] += 1;
+  r = scan_from((char *)buf, 32, &m);
+  check_mask(r, m, bit(1) | bit(2) | bit(30),
+             "P5: malloc'd buffer reports pages 1, 2, 30");
+  free((void *)buf);
+}
+
 int
 main(void)
 {
@@ -275,10 +342,12 @@ main(void)
   test_len();
   test_base();
   test_bad_mask();
+  test_mask_in_region();
   test_partial_byte();
   test_guard();
   test_fork();
   test_migrate();
+  test_malloc();
 
   if(failed == 0)
     printf("pgtbltest: ALL PASSED\n");
