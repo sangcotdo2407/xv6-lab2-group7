@@ -67,7 +67,7 @@ Trước khi code: đọc Chương 3 sách xv6, `kernel/memlayout.h`, `kernel/vm
    - Báo cáo: với **mỗi trang lá** trong output, giải thích trang đó chứa gì về mặt logic và các bit quyền của nó.
 3. **Detect which pages have been accessed (4 điểm)**:
    - Cài đặt system call `pgaccess()` gồm 3 đối số: địa chỉ ảo bắt đầu của trang user đầu tiên; số trang cần kiểm tra; địa chỉ user của buffer nhận **bitmask** (1 bit/trang, trang đầu ứng với bit thấp nhất).
-   - Gợi ý: bắt đầu từ `sys_pgaccess()` trong `kernel/sysproc.c`; dùng `argaddr()`, `argint()`; dùng buffer tạm trong kernel rồi `copyout()`; được phép đặt giới hạn số trang; dùng `walk()`; tự định nghĩa `PTE_A` trong `kernel/riscv.h` theo manual; phải kiểm soát việc set/clear `PTE_A`; có thể dùng `vmprint()` để debug.
+   - Gợi ý: xem cách dùng trong `pgaccess_test()` của `user/pgtbltest.c` (nhánh `pgtbl`); test này truyền buffer lấy từ `malloc` nên `base` có thể không thẳng trang (xử lý ở TASK_ASSIGNMENT.md §2.5); bắt đầu từ `sys_pgaccess()` trong `kernel/sysproc.c`; dùng `argaddr()`, `argint()`; dùng buffer tạm trong kernel rồi `copyout()`; được phép đặt giới hạn số trang; dùng `walk()`; tự định nghĩa `PTE_A` trong `kernel/riscv.h` theo manual; phải kiểm soát việc set/clear `PTE_A`; có thể dùng `vmprint()` để debug.
    - Kiểm thử bằng `pgtbltest` có sẵn hoặc chương trình tự viết. **Lưu ý: repo này không có `user/pgtbltest.c`** (xem §4).
 
 Nộp bài (Moodle, không nhận qua email): file `24120183_24120428_24120452.zip` (MSSV tăng dần) gồm `24120183_24120428_24120452_Report.pdf` (ngắn gọn, không dán source code), file patch (`git diff > 24120183_24120428_24120452.patch`) và file zip source xv6 đã `make clean`.
@@ -256,7 +256,7 @@ Một nhiệm vụ chỉ được coi là xong khi:
 - [ ] Tuân thủ quy định comment §7.1: kiểm tra comment không in ra dòng nào; comment trong file kiểm thử bằng tiếng Việt có dấu.
 - [ ] Báo cáo cá nhân trong `docs/reports/` hoàn chỉnh theo template.
 - [ ] Thành viên tự giải thích được mọi dòng code đã thay đổi.
-- [ ] Đã push nhánh tính năng và tạo PR vào `integration/lab2` (do thành viên thực hiện, không phải agent).
+- [ ] Đã push nhánh tính năng và tạo PR vào `integration/lab2` (thành viên tự làm, hoặc agent làm khi được yêu cầu rõ ràng trong phiên, theo §0 mục 10).
 
 ---
 
@@ -265,7 +265,7 @@ Một nhiệm vụ chỉ được coi là xong khi:
 - AI được dùng để giải thích code, gợi ý thiết kế, viết nháp code/test, rà lỗi. **Thành viên chịu trách nhiệm cuối cùng** về mọi dòng code và phải hiểu để vấn đáp.
 - Trước khi giao việc cho AI: cung cấp phạm vi file được sửa và quy ước ở TASK_ASSIGNMENT.md §2.
 - Agent phải đọc code thật trong repo trước khi sửa; không giả định theo bản xv6 khác hoặc theo lời giải trên mạng.
-- Agent không được: chạy lệnh Git làm thay đổi lịch sử/remote, xóa file, sửa test Lab 1, tạo kết quả test giả, tự mở rộng yêu cầu.
+- Agent không được: tự ý chạy lệnh Git làm thay đổi lịch sử/remote (chỉ chạy khi người dùng yêu cầu rõ ràng trong phiên hiện tại, theo §0 mục 10), xóa file, sửa test Lab 1, tạo kết quả test giả, tự mở rộng yêu cầu.
 - Mọi output của AI phải được review: đọc diff, build, chạy test.
 - Nếu môn học yêu cầu khai báo việc dùng AI, ghi trong mục "Khó khăn và cách giải quyết" của báo cáo.
 
