@@ -4,6 +4,7 @@ Tài liệu này áp dụng cho **mọi** coding agent (Claude Code, Codex, Copi
 
 Tài liệu liên quan:
 
+- [docs/Lab2_Memory.pdf](docs/Lab2_Memory.pdf): đề bài gốc của giảng viên, nguồn ưu tiên cao nhất (§5).
 - [TASK_ASSIGNMENT.md](TASK_ASSIGNMENT.md): phân công chi tiết và **quy ước dùng chung** (số hiệu syscall, tên hàm, file được sửa). Khi hai tài liệu mâu thuẫn về quy ước kỹ thuật, theo TASK_ASSIGNMENT.md §2.
 - [docs/xv6_chapter3.md](docs/xv6_chapter3.md): tóm lược Chương 3 sách xv6 kèm đối chiếu mã nguồn.
 - [REPORT_TEMPLATE.md](REPORT_TEMPLATE.md): mẫu báo cáo.
@@ -119,7 +120,7 @@ Số dòng lấy tại baseline `cd1e597`; có thể lệch sau khi sửa.
 
 ## 5. Thứ tự ưu tiên tài liệu
 
-1. Đề bài `Lab2_Memory.pdf` của giảng viên.
+1. Đề bài [`docs/Lab2_Memory.pdf`](docs/Lab2_Memory.pdf) của giảng viên.
 2. Mã nguồn thực tế trong repository (luôn đúng hơn sách khi mô tả code hiện tại).
 3. [TASK_ASSIGNMENT.md](TASK_ASSIGNMENT.md) (quy ước nhóm) và tài liệu này.
 4. Sách xv6 RISC-V (bản 31/08/2024), tóm lược trong [docs/xv6_chapter3.md](docs/xv6_chapter3.md).
