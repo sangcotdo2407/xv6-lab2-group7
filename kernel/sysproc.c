@@ -115,9 +115,13 @@ sys_sysinfo(void)
     ret = -1;
   else if(collect_process_info(&kinfo) < 0)
     ret = -1;
-  else if(copyout(myproc()->pagetable, uaddr,
-                  (char *)&kinfo, sizeof(kinfo)) < 0)
-    ret = -1;
+  else {
+    kinfo.freemem = kfreebytes();
+
+    if(copyout(myproc()->pagetable, uaddr,
+               (char *)&kinfo, sizeof(kinfo)) < 0)
+      ret = -1;
+  }
 
   releasesleep(&kinfo_lock);
 
