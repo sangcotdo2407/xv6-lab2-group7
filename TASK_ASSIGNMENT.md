@@ -59,7 +59,7 @@ Chỉ Sang định nghĩa `PTE_A`. Thi không cần `PTE_A` để cài `vmprint`
 
 ### 2.3. Mở rộng `struct sysinfo` (ABI dùng chung kernel ↔ user) — [Quy ước nhóm]
 
-- Thêm **đúng một** trường `uint64 freemem;` (đơn vị: byte) vào **cuối** `struct sysinfo` trong `kernel/sysinfo.h`, kèm comment ngắn tiếng Anh.
+- Thêm **đúng một** trường `uint64 freemem;` (đơn vị: byte) vào **cuối** `struct sysinfo` trong `kernel/sysinfo.h`, không kèm comment (AGENTS.md §7.1).
 - Không đổi thứ tự, kiểu hay tên trường cũ: offset của mọi trường Lab 1 giữ nguyên.
 - `freemem` được điền trong `sys_sysinfo()`, **sau khi** `collect_file_info()` và `collect_process_info()` thành công, **trước** `copyout()`, khi vẫn giữ `kinfo_lock`.
 - Không sửa hai collector của Lab 1. Khi collector lỗi: trả `-1` và **không** `copyout` (giữ đúng ngữ nghĩa mà `tests/sysinfo_fault.c` kiểm tra).
@@ -232,6 +232,7 @@ Ngoài ra `run_file_info.py` và `run_lab1_extra.py` gọi trực tiếp `riscv6
 - Không race: đọc dưới `kmem.lock`.
 - Đường lỗi của Lab 1 giữ nguyên (`sysinfo_fault`).
 - Test Lab 1 không bị sửa và vẫn PASS.
+- Tuân thủ AGENTS.md §7.1: không có comment mới trong `kernel/` và `Makefile`; comment trong `user/freememtest.c` bằng tiếng Việt có dấu.
 
 **Definition of Done:** AGENTS.md §11 + acceptance criteria ở trên + báo cáo giải thích vì sao chọn cách (a) hoặc (b).
 
@@ -308,6 +309,7 @@ Ngoài ra `run_file_info.py` và `run_lab1_extra.py` gọi trực tiếp `riscv6
 - One-shot và không kế thừa qua `fork`.
 - Mọi trang lá được giải thích đúng.
 - Toàn bộ hồi quy PASS.
+- Tuân thủ AGENTS.md §7.1: không có comment mới trong `kernel/`, `user/pgtbl.c`, `Makefile` và các file registry; comment trong `user/vmprinttest.c` bằng tiếng Việt có dấu.
 
 **Definition of Done:** AGENTS.md §11 + acceptance criteria ở trên.
 
@@ -406,6 +408,7 @@ Mục tiêu: xác định QEMU của nhóm có tự bật `PTE_A` bằng phần 
 - `PTE_A = 1L << 6`, có trích dẫn spec.
 - Kết quả P1–P12 PASS ở cả hai cấu hình CPU.
 - Không sửa file ngoài phạm vi.
+- Tuân thủ AGENTS.md §7.1: không có comment mới trong `kernel/`, `Makefile` và các file registry; comment trong `user/pgtbltest.c` bằng tiếng Việt có dấu.
 
 **Definition of Done:** AGENTS.md §11 + acceptance criteria ở trên + hoàn thành vai trò tích hợp (§7).
 
@@ -414,7 +417,7 @@ Mục tiêu: xác định QEMU của nhóm có tự bật `PTE_A` bằng phần 
 - Tạo `integration/lab2` từ `main` và push lên remote.
 - Review từng PR:
   - phạm vi file (`git diff integration/lab2...feature/<x> --stat`);
-  - comment gốc còn nguyên;
+  - quy định comment (AGENTS.md §7.1): chạy lệnh kiểm tra comment với `lab2-baseline origin/feature/<x>` thay cho `lab2-baseline`, kết quả phải rỗng;
   - không có CRLF hay format thừa;
   - có log test thật.
 - Merge theo thứ tự Vũ → Thi → Sang. Sau mỗi lần merge: `make clean`, build, chạy bộ hồi quy với `CPUS=1` và `CPUS=3`.
@@ -441,6 +444,7 @@ git archive --format=zip -o Source.zip HEAD \
 ```
 
 4. Kiểm tra lại:
+   - lệnh kiểm tra comment (AGENTS.md §7.1) trên commit cuối không in ra dòng nào;
    - giải nén `Source.zip` vào thư mục trống, `make qemu` chạy được;
    - patch áp được lên bản nền sạch:
 

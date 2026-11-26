@@ -12,12 +12,12 @@ Tài liệu liên quan:
 
 ## 0. Quy tắc bắt buộc (đọc trước tiên)
 
-1. Giữ nguyên comment mặc định của xv6. Chỉ sửa comment khi nó trở nên sai do thay đổi chức năng cần thiết, và phải nêu lý do trong mô tả thay đổi.
+1. Tuân thủ quy định comment ở §7.1: không thêm comment mới vào file mã nguồn chức năng; giữ nguyên comment mặc định của xv6 và comment có sẵn từ Lab 1; comment mới trong file kiểm thử viết bằng tiếng Việt có dấu.
 2. Không sửa file hoặc hàm nằm ngoài phạm vi nhiệm vụ được giao (xem ma trận file ở TASK_ASSIGNMENT.md §3) nếu không có lý do kỹ thuật rõ ràng. Khi bắt buộc phải sửa ngoài phạm vi, dừng lại và hỏi người dùng trước.
 3. Không refactor, không đổi tên, không format hàng loạt, không sắp xếp lại include, không đổi khoảng trắng của dòng không liên quan.
 4. Không làm mất chức năng Lab 1: `sysinfo()` (thống kê file/process), `scheduling_count`, `collect_file_info()`, `collect_process_info()`, `file_index_of()`, `filesetinfo()`, các chương trình `sysinfotest`, `filetest` và bộ test trong `tests/`.
 5. Không thay đổi hành vi mặc định của `exec()`: chữ ký `int exec(char*, char**)`, `sys_exec()`, giá trị trả về, bố cục bộ nhớ và output khi người dùng không yêu cầu in bảng trang.
-6. Tuân thủ phong cách xv6: thụt lề 2 dấu cách cho `.c/.h` (xem `.editorconfig`), kiểu trả về nằm trên dòng riêng khi định nghĩa hàm, `if(` không có dấu cách, comment `//` ngắn gọn bằng tiếng Anh, dùng `uint64`, `pte_t`, `pagetable_t`, `PGSIZE`, `PGROUNDDOWN`… sẵn có.
+6. Tuân thủ phong cách xv6: thụt lề 2 dấu cách cho `.c/.h` (xem `.editorconfig`), kiểu trả về nằm trên dòng riêng khi định nghĩa hàm, `if(` không có dấu cách, dùng `uint64`, `pte_t`, `pagetable_t`, `PGSIZE`, `PGROUNDDOWN`… sẵn có.
 7. Kiểm tra tính đúng đắn, đồng bộ (lock), an toàn bộ nhớ (con trỏ từ user, tràn số, vượt `MAXVA`, vượt `p->sz`) và các trường hợp biên trước khi coi là xong.
 8. Không cài đặt lại thứ đã có (`walk()`, `copyout()`, `argaddr()`, `argint()`, `PGROUNDDOWN`, `PTE2PA`, `PX`…). Dùng lại hàm hiện có.
 9. Không sao chép nguyên văn lời giải có sẵn trên mạng (kể cả nhánh `pgtbl` của MIT 6.1810). Đề cảnh báo: bài giống nhau bị 0 điểm toàn bộ phần thực hành.
@@ -151,9 +151,42 @@ Chi tiết từng mục và đối chiếu code: [docs/xv6_chapter3.md](docs/xv6
 - Kiểm tra tràn số khi tính `base + n*PGSIZE`.
 - Không giữ spinlock khi gọi hàm có thể ngủ hoặc `copyout`; tuân theo thứ tự lock hiện có (`wait_lock` trước `p->lock`; không giữ hai `p->lock`).
 - Không cấp phát bộ nhớ lớn trên kernel stack (chỉ 1 trang); dùng biến cục bộ nhỏ hoặc `static` có bảo vệ như Lab 1 đã làm với `kinfo`.
-- Comment mới viết bằng tiếng Anh, ngắn, giải thích **tại sao** chứ không lặp lại code.
 - Giữ line ending **LF** (repo dùng LF; Windows có thể tự chuyển CRLF — kiểm tra `git diff` không có thay đổi toàn file).
 - Build phải sạch với `-Wall -Werror` của Makefile.
+
+### 7.1. Quy định comment trong mã nguồn (Source Code Comment Policy) — bắt buộc
+
+Phân loại file:
+
+| Loại | File | Comment mới |
+|---|---|---|
+| Mã nguồn chức năng | Mọi file `.c`, `.h`, `.S`, `.ld`, `.pl` trong `kernel/`, `user/`, `mkfs/` và `Makefile` ở thư mục gốc, không thuộc hai nhóm dưới, **kể cả** chương trình user phục vụ tính năng như `user/pgtbl.c` | Không được thêm |
+| File kiểm thử Lab 2 | Chương trình test mới ở TASK_ASSIGNMENT.md §2.6: `user/freememtest.c`, `user/vmprinttest.c`, `user/pgtbltest.c` | Được thêm, bằng tiếng Việt có dấu |
+| Test có sẵn | `user/sysinfotest.c`, `user/filetest.c`, `user/usertests.c`, `user/forktest.c`, `tests/` | Không sửa file (TASK_ASSIGNMENT.md §3) |
+
+1. **Mã nguồn chức năng:**
+   - Không thêm comment mới dưới bất kỳ dạng nào (`//`, `/* */`, comment cuối dòng, `#` trong `Makefile`/`.pl`).
+   - Giữ nguyên toàn bộ comment mặc định của xv6 và comment có sẵn từ Lab 1: không xóa, dịch, viết lại, di chuyển hay đổi định dạng.
+   - Nếu comment cũ trở nên sai do thay đổi logic bắt buộc: không tự sửa; báo cho thành viên phụ trách quyết định và ghi lại trong mô tả PR.
+   - Code mới phải tự giải thích qua tên biến, tên hàm, tên macro và cấu trúc rõ ràng. Lý do thiết kế ghi trong báo cáo cá nhân (`docs/reports/`), không ghi trong code.
+2. **File kiểm thử:**
+   - Được thêm comment giải thích mục đích, dữ liệu đầu vào, kết quả mong đợi và trường hợp kiểm thử.
+   - Comment mới viết bằng tiếng Việt có dấu, mã hóa UTF-8 (không BOM); giữ nguyên thuật ngữ kỹ thuật tiếng Anh (PTE, page table, bitmask, `sbrk`…).
+   - Không dịch hoặc xóa comment đã có trong file kiểm thử.
+   - Không thêm comment dư thừa hoặc giải thích câu lệnh hiển nhiên.
+3. **Kiểm tra trước khi hoàn thành bất kỳ nhiệm vụ nào** (agent và thành viên):
+   - Phát hiện comment bị thêm, xóa hoặc sửa trong file chức năng. Kết quả đúng là **không in ra dòng nào**:
+
+     ```bash
+     git diff -U0 lab2-baseline -- kernel user mkfs Makefile \
+         ':!user/freememtest.c' ':!user/vmprinttest.c' ':!user/pgtbltest.c' \
+       | grep -vE '^(\+\+\+|---) ' \
+       | grep -E '^[+-].*(//|/\*|\*/)|^[+-][[:space:]]*# '
+     ```
+
+   - Với file kiểm thử: đọc lại mọi comment mới (tiếng Việt có dấu, không dư thừa); `file <tên file>` phải báo UTF-8 và không có CRLF.
+   - Loại bỏ mọi comment mới không được phép trước khi kết thúc.
+   - Agent phải nêu trong phần tổng kết/review cuối cùng: đã chạy kiểm tra comment, kết quả, và comment nào đã bị loại bỏ (nếu có).
 
 ---
 
@@ -165,7 +198,7 @@ Chi tiết từng mục và đối chiếu code: [docs/xv6_chapter3.md](docs/xv6
 - Commit message theo kiểu hiện có (Conventional Commits): `feat(sysinfo): ...`, `feat(vmprint): ...`, `feat(pgaccess): ...`, `test(...): ...`, `docs(report): ...`, `fix(...): ...`.
 - Mỗi commit nhỏ, build được. Không commit file build (đã có trong `.gitignore`), không commit `fs.img`.
 - Agent **chỉ được** sửa file trong phạm vi của thành viên đang làm việc (TASK_ASSIGNMENT.md §3). Agent không tự commit/push/merge (quy tắc 10).
-- Trước khi kết thúc phiên: chạy `git status --short` và `git diff --stat`, rà từng hunk, đảm bảo không có thay đổi ngoài phạm vi, không có thay đổi khoảng trắng/CRLF.
+- Trước khi kết thúc phiên: chạy `git status --short` và `git diff --stat`, rà từng hunk, đảm bảo không có thay đổi ngoài phạm vi, không có thay đổi khoảng trắng/CRLF; chạy kiểm tra comment ở §7.1.
 - Để xem riêng thay đổi Lab 2: `git diff lab2-baseline -- kernel user Makefile`.
 
 ---
@@ -219,7 +252,8 @@ Một nhiệm vụ chỉ được coi là xong khi:
 - [ ] Đáp ứng đủ yêu cầu đề bài của nhiệm vụ và quy ước ở TASK_ASSIGNMENT.md §2.
 - [ ] `make clean && make qemu` build không warning/error.
 - [ ] Toàn bộ bộ kiểm thử ở §9 PASS với `CPUS=1` và `CPUS=3`, có log/ảnh minh chứng.
-- [ ] Chỉ sửa các file trong phạm vi; diff sạch (không format, không CRLF, comment gốc còn nguyên).
+- [ ] Chỉ sửa các file trong phạm vi; diff sạch (không format, không CRLF).
+- [ ] Tuân thủ quy định comment §7.1: kiểm tra comment không in ra dòng nào; comment trong file kiểm thử bằng tiếng Việt có dấu.
 - [ ] Báo cáo cá nhân trong `docs/reports/` hoàn chỉnh theo template.
 - [ ] Thành viên tự giải thích được mọi dòng code đã thay đổi.
 - [ ] Đã push nhánh tính năng và tạo PR vào `integration/lab2` (do thành viên thực hiện, không phải agent).
