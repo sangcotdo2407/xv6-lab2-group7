@@ -138,8 +138,9 @@ sys_pgaccess(void)
   argaddr(0, &base);
   argint(1, &len);
   argaddr(2, &umask);
+  base = PGROUNDDOWN(base);
 
-  if(len < 1 || len > PGACCESS_MAXPAGES || base % PGSIZE != 0)
+  if(len < 1 || len > PGACCESS_MAXPAGES)
     return -1;
   if(base >= p->sz || (uint64)len * PGSIZE > p->sz - base)
     return -1;
