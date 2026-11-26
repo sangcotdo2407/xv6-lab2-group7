@@ -108,6 +108,29 @@ test_read_write(void)
   check_mask(r, m, bit(6), "P3: a write alone is reported");
 }
 
+static uint64 __attribute__((noinline))
+next_pc(void)
+{
+  return (uint64)__builtin_return_address(0);
+}
+
+// base = 0 (trang text) là vùng hợp lệ và việc nạp lệnh cũng bật PTE_A.
+// next_pc() trả về địa chỉ lệnh ngay sau lời gọi, tức một lệnh chắc chắn
+// được nạp giữa hai lần gọi pgaccess().
+static void
+test_fetch(void)
+{
+  int ntext = PGROUNDDOWN((uint64)&failed) / PGSIZE;
+  uint64 pc, m;
+  int r;
+
+  scan_from(0, ntext, &m);
+  pc = next_pc();
+  r = scan_from(0, ntext, &m);
+  check(r == 0 && (m & bit(pc / PGSIZE)) != 0,
+        "P3: instruction fetch on a text page (base = 0) is reported");
+}
+
 static void
 test_len(void)
 {
@@ -180,6 +203,8 @@ test_bad_mask(void)
         "P7: unmapped mask rejected");
   check(pgaccess(region, NPAGES, (void *)MAXVA) == -1,
         "P7: mask = MAXVA rejected");
+  check(pgaccess(region, NPAGES, region + NPAGES * PGSIZE - 4) == -1,
+        "P7: mask crossing into an unmapped page rejected");
 
   r = scan(NPAGES, &m);
   check_mask(r, m, bit(10) | bit(11),
@@ -339,6 +364,7 @@ main(void)
 
   test_phases();
   test_read_write();
+  test_fetch();
   test_len();
   test_base();
   test_bad_mask();
