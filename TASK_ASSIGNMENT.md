@@ -92,11 +92,11 @@ page table 0x0000000087f6b000
 
 | Quy tắc | Nguồn |
 |---|---|
-| Bit `i` (0 ≤ `i` < `len`) ứng với trang `base + i*PGSIZE`; trang đầu là bit thấp nhất | [Đề] |
+| Bit `i` (0 ≤ `i` < `len`) ứng với trang thứ `i` tính từ trang chứa `base`; trang đầu là bit thấp nhất | [Đề]; cách xác định trang đầu là [Quy ước nhóm] |
 | Bit `i` nằm ở byte `i/8`, vị trí `i%8` của buffer `mask`; kernel ghi **đúng** `(len+7)/8` byte. Trên RISC-V little-endian, user có thể truyền `unsigned int*` (len ≤ 32) hoặc `uint64*` (len ≤ 64) | [Quy ước nhóm] |
-| `base` phải chia hết cho `PGSIZE`, nếu không → `-1` | [Quy ước nhóm] |
+| `base` không cần thẳng trang: kernel làm tròn xuống bằng `PGROUNDDOWN`. Lý do: `pgaccess_test()` trong `user/pgtbltest.c` mà [Đề] gợi ý tham khảo truyền buffer lấy từ `malloc` (lệch 16 byte so với đầu trang) | [Quy ước nhóm], đổi ngày 26/11/2026 (§8) |
 | `1 ≤ len ≤ PGACCESS_MAXPAGES` (= 64), nếu không → `-1` | Đề cho phép đặt giới hạn; giá trị là [Quy ước nhóm] |
-| Toàn bộ `[base, base + len*PGSIZE)` phải nằm trong `[0, p->sz)` và dưới `MAXVA` (kiểm tra **trước** khi gọi `walk`), nếu không → `-1` | [Quy ước nhóm] |
+| Toàn bộ các trang được kiểm tra, `[PGROUNDDOWN(base), PGROUNDDOWN(base) + len*PGSIZE)`, phải nằm trong `[0, p->sz)` và dưới `MAXVA` (kiểm tra **trước** khi gọi `walk`), nếu không → `-1` | [Quy ước nhóm] |
 | Trang được báo "đã truy cập" khi PTE hợp lệ, có `PTE_U` và có `PTE_A` | [Quy ước nhóm] |
 | Trang trong vùng nhưng không có PTE user hợp lệ (ví dụ guard page dưới stack) → bit 0, không lỗi | [Quy ước nhóm] |
 | Sau khi báo cáo, xóa `PTE_A` của các trang đã báo để lần gọi sau chỉ phản ánh truy cập mới. Không chạm `PTE_D` hay bit khác | [Đề] yêu cầu kiểm soát set/clear; chi tiết [Quy ước nhóm] |
@@ -345,7 +345,7 @@ Ngoài ra `run_file_info.py` và `run_lab1_extra.py` gọi trực tiếp `riscv6
 
 **Trường hợp biên quan trọng**
 
-1. `base` không chia hết `PGSIZE`; `len ≤ 0`; `len > 64`.
+1. `base` không chia hết `PGSIZE` (làm tròn xuống, không lỗi; ví dụ buffer từ `malloc`); `len ≤ 0`; `len > 64`.
 2. Vùng vượt `p->sz`; `base` rất lớn (≥ `MAXVA`) → `-1` và **không panic**; tràn số khi tính `base + len*PGSIZE`.
 3. `mask` NULL / chưa map / nằm trên trang text chỉ đọc → `-1`. Theo §2.5, thông tin A không bị mất.
 4. `mask` nằm trong chính vùng đang kiểm tra: `copyout` của kernel không bật A, kết quả không bị ảnh hưởng.
@@ -364,7 +364,7 @@ Ngoài ra `run_file_info.py` và `run_lab1_extra.py` gọi trực tiếp `riscv6
 | P2 | Gọi lại ngay | mask = 0 |
 | P3 | Chỉ đọc một trang / chỉ ghi một trang | cả hai đều được báo |
 | P4 | `len = 64` | thành công; `len = 65`, `0`, `-1` → `-1` |
-| P5 | `base` lệch trang | `-1` |
+| P5 | `base` lệch trang; buffer từ `malloc(32*PGSIZE)` dùng như `pgaccess_test()` | báo đúng các trang tính từ trang chứa `base`, không lỗi |
 | P6 | Vùng vượt `sbrk(0)`; `base = MAXVA`; `base = 0xffffffffffff0000` | `-1`, không panic |
 | P7 | `mask` = 0, = địa chỉ text, = trang chưa map | `-1` |
 | P8 | `len = 9` với canary | ghi đúng 2 byte |
@@ -372,6 +372,7 @@ Ngoài ra `run_file_info.py` và `run_lab1_extra.py` gọi trực tiếp `riscv6
 | P10 | `fork`: con chạm trang khác cha | mỗi bên chỉ thấy truy cập của mình (sau khi đã xóa) |
 | P11 | Sau P7 (mask lỗi) gọi lại với mask hợp lệ | các truy cập trước đó vẫn được báo |
 | P12 | Chạm lại một trang sau khi bit của nó đã bị xóa, gọi lại | bit đó được báo lại (pha D bên dưới) |
+| P13 | `mask` nằm trong chính vùng đang kiểm tra (trường hợp biên 4) | mask ghi đúng; lần gọi sau không báo trang chứa mask |
 | R | Hồi quy | `sysinfotest`, `filetest`, `forktest`, `usertests -q` |
 
 **Quy trình kiểm chứng bit A trên QEMU**
@@ -468,4 +469,4 @@ git archive --format=zip -o Source.zip HEAD \
 | 3 | QEMU tự bật bit A bằng phần cứng hay sinh page fault? | Kiểm chứng theo "Quy trình kiểm chứng bit A trên QEMU" ở §6. Sang ghi kết quả vào báo cáo |
 | 4 | Ví dụ vmprint trong đề có index 509 (trang `USYSCALL`) và lời văn ghi "0, 1, 2" trong khi hình in 0–3 | Báo cáo của Thi ghi chú: output của nhóm phản ánh bố cục thật của repo, không có trang `USYSCALL` vì phần "speed up system calls" không thuộc yêu cầu chấm |
 | 5 | Có in bảng trang của `init` lúc boot như bản MIT? | Không. Đề yêu cầu chỉ in khi người dùng muốn; báo cáo của Thi nêu giả định này |
-| 6 | Giới hạn 64 trang và yêu cầu `base` thẳng trang của `pgaccess` | Là quy ước nhóm (§2.5); báo cáo của Sang nêu rõ |
+| 6 | Giới hạn 64 trang và cách xử lý `base` lệch trang của `pgaccess` | Là quy ước nhóm (§2.5): tối đa 64 trang; `base` lệch trang được làm tròn xuống. Ban đầu nhóm bắt `base` thẳng trang; sau khi đối chiếu `Lab2_Memory.pdf` thấy `pgaccess_test()` mà đề gợi ý dùng buffer từ `malloc` nên đổi (26/11/2026). Báo cáo của Sang nêu rõ |
