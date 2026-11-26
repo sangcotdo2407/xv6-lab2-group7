@@ -449,3 +449,27 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
     return -1;
   }
 }
+
+// Print one level of a page table for vmprint(); depth is 1 for the root.
+static void
+vmprint_walk(pagetable_t pagetable, int depth)
+{
+  static char *indent[] = { " ..", " .. ..", " .. .. .." };
+
+  for(int i = 0; i < 512; i++){
+    pte_t pte = pagetable[i];
+    if((pte & PTE_V) == 0)
+      continue;
+    printf("%s%d: pte %p pa %p\n", indent[depth-1], i, (uint64)pte, (uint64)PTE2PA(pte));
+    // a valid PTE without R/W/X points to a lower-level page table
+    if(depth < 3 && (pte & (PTE_R|PTE_W|PTE_X)) == 0)
+      vmprint_walk((pagetable_t)PTE2PA(pte), depth + 1);
+  }
+}
+
+void
+vmprint(pagetable_t pagetable)
+{
+  printf("page table %p\n", pagetable);
+  vmprint_walk(pagetable, 1);
+}
