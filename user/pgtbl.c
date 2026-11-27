@@ -10,7 +10,6 @@ main(int argc, char *argv[])
     exit(1);
   }
 
-  // ask the kernel to print the page table on the next successful exec
   setvmprint(1);
   exec(argv[1], &argv[1]);
 
