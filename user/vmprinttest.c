@@ -2,8 +2,8 @@
 #include "kernel/stat.h"
 #include "user/user.h"
 
-// The page table is printed by the kernel straight to the console, so the
-// one-shot / no-inherit checks (V8, V8b) are verified by reading the output.
+// Bảng trang do kernel in thẳng ra console, chương trình không đọc lại được,
+// nên hai kiểm tra one-shot và không kế thừa qua fork (V8, V8b) phải xem output.
 
 static void
 stage2(void)
@@ -20,12 +20,12 @@ stage2(void)
     exit(1);
   }
   if(pid == 0){
-    exec("echo", echo_child);  // flag is not inherited through fork
+    exec("echo", echo_child);  // cờ không được kế thừa qua fork
     exit(1);
   }
   wait(0);
 
-  exec("echo", echo_self);  // flag was cleared by the previous exec
+  exec("echo", echo_self);  // cờ đã bị xóa ở lần exec trước
   exit(1);
 }
 
@@ -38,7 +38,7 @@ main(int argc, char *argv[])
   if(argc >= 2 && strcmp(argv[1], "stage2") == 0)
     stage2();
 
-  // setvmprint() always returns 0
+  // setvmprint() luôn trả về 0
   if(setvmprint(1) == 0 && setvmprint(0) == 0 && setvmprint(-5) == 0 &&
      setvmprint(0) == 0)
     printf("[PASS] setvmprint return values\n");
@@ -51,7 +51,7 @@ main(int argc, char *argv[])
     printf("vmprinttest: %d FAILED\n", fails);
     exit(1);
   }
-  printf("vmprinttest: ALL PASSED (return values); check the one-shot output below\n");
+  printf("vmprinttest: setvmprint checks passed; V8/V8b below need a manual check\n");
 
   setvmprint(1);
   exec("vmprinttest", args);
