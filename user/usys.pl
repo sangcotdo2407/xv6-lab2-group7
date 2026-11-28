@@ -36,3 +36,4 @@ entry("sleep");
 entry("uptime");
 entry("sysinfo");
 entry("setvmprint");
+entry("pgaccess");

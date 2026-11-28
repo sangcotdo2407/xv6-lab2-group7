@@ -137,6 +137,7 @@ UPROGS=\
 	$U/_freememtest\
 	$U/_pgtbl\
 	$U/_vmprinttest\
+	$U/_pgtbltest\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)

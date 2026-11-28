@@ -137,3 +137,45 @@ sys_sysinfo(void)
 
   return ret;
 }
+
+#define PGACCESS_MAXPAGES 64
+
+uint64
+sys_pgaccess(void)
+{
+  uint64 base, umask;
+  int len, i;
+  uchar kmask[PGACCESS_MAXPAGES / 8];
+  pte_t *pte;
+  struct proc *p = myproc();
+
+  argaddr(0, &base);
+  argint(1, &len);
+  argaddr(2, &umask);
+  base = PGROUNDDOWN(base);
+
+  if(len < 1 || len > PGACCESS_MAXPAGES)
+    return -1;
+  if(base >= p->sz || (uint64)len * PGSIZE > p->sz - base)
+    return -1;
+  if(base + (uint64)len * PGSIZE > MAXVA)
+    return -1;
+
+  memset(kmask, 0, sizeof(kmask));
+  for(i = 0; i < len; i++){
+    pte = walk(p->pagetable, base + (uint64)i * PGSIZE, 0);
+    if(pte && (*pte & PTE_V) && (*pte & PTE_U) && (*pte & PTE_A))
+      kmask[i / 8] |= 1 << (i % 8);
+  }
+
+  if(copyout(p->pagetable, umask, (char *)kmask, (len + 7) / 8) < 0)
+    return -1;
+
+  for(i = 0; i < len; i++){
+    if(kmask[i / 8] & (1 << (i % 8))){
+      pte = walk(p->pagetable, base + (uint64)i * PGSIZE, 0);
+      *pte &= ~PTE_A;
+    }
+  }
+  return 0;
+}
