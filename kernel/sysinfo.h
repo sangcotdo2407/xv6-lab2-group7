@@ -33,6 +33,7 @@ struct sysinfo {
   struct sysinfo_file files[NFILE];
   int process_count;
   struct sysinfo_process processes[NPROC];
+  uint64 freemem;
 };
 
 #endif
