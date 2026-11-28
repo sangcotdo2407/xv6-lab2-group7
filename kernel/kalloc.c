@@ -21,6 +21,7 @@ struct run {
 struct {
   struct spinlock lock;
   struct run *freelist;
+  uint64 nfree;
 } kmem;
 
 void
@@ -59,6 +60,7 @@ kfree(void *pa)
   acquire(&kmem.lock);
   r->next = kmem.freelist;
   kmem.freelist = r;
+  kmem.nfree++;
   release(&kmem.lock);
 }
 
@@ -72,8 +74,10 @@ kalloc(void)
 
   acquire(&kmem.lock);
   r = kmem.freelist;
-  if(r)
+  if(r){
     kmem.freelist = r->next;
+    kmem.nfree--;
+  }
   release(&kmem.lock);
 
   if(r)
@@ -84,13 +88,11 @@ kalloc(void)
 uint64
 kfreebytes(void)
 {
-  struct run *r;
-  uint64 total = 0;
+  uint64 npages;
 
   acquire(&kmem.lock);
-  for(r = kmem.freelist; r != 0; r = r->next)
-    total += PGSIZE;
+  npages = kmem.nfree;
   release(&kmem.lock);
 
-  return total;
+  return npages * PGSIZE;
 }
