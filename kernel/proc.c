@@ -168,6 +168,7 @@ freeproc(struct proc *p)
   p->scheduling_count = 0;
   p->parent = 0;
   p->name[0] = 0;
+  p->vmprint_on_exec = 0;
   p->chan = 0;
   p->killed = 0;
   p->xstate = 0;

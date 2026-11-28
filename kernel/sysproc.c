@@ -94,6 +94,16 @@ sys_uptime(void)
   return xticks;
 }
 
+uint64
+sys_setvmprint(void)
+{
+  int on;
+
+  argint(0, &on);
+  myproc()->vmprint_on_exec = (on != 0);
+  return 0;
+}
+
 // The snapshot exceeds the one-page kernel stack. A sleeplock serializes
 // callers; collectors release all table spinlocks before copyout().
 static struct sysinfo kinfo;

@@ -135,6 +135,8 @@ UPROGS=\
 	$U/_zombie\
 	$U/_sysinfotest\
 	$U/_freememtest\
+	$U/_pgtbl\
+	$U/_vmprinttest\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
