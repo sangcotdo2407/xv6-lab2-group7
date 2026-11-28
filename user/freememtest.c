@@ -1,3 +1,6 @@
+// Chương trình kiểm thử trường freemem mà sysinfo() trả thêm ở Lab 2.
+// Mã test F1..F7 theo TASK_ASSIGNMENT.md mục 4.
+
 #include "kernel/types.h"
 #include "kernel/param.h"
 #include "kernel/sysinfo.h"
@@ -7,8 +10,11 @@
 #define TEST_PHYS_LIMIT (128ULL * 1024 * 1024)
 #define TEST_ALLOC_PAGES 32
 
+// struct sysinfo khoảng 38 KB, lớn hơn stack một trang của tiến trình user,
+// nên phải đặt static.
 static struct sysinfo si;
 static int failed;
+// Khai báo trước để F7 dùng địa chỉ của main, một địa chỉ trong trang text.
 int main(void);
 
 static void
@@ -51,6 +57,7 @@ test_basic(void)
     return;
 
   check(si.freemem > 0, "F1: freemem lon hon 0");
+  // RAM của xv6 là KERNBASE..PHYSTOP (128 MiB), một phần đã thuộc kernel.
   check(si.freemem < TEST_PHYS_LIMIT, "F1: freemem nho hon 128 MiB");
   check(si.freemem % TEST_PGSIZE == 0, "F1: freemem chia het cho PGSIZE");
 }
@@ -66,6 +73,8 @@ test_repeat(void)
   }
   first = si.freemem;
 
+  // Giữa hai lần gọi không có cấp phát nào (shell đang chờ wait()),
+  // nên freemem phải bằng nhau.
   check(snapshot() == 0 && si.freemem == first,
         "F2: hai lan goi lien tiep khong cap phat cho cung freemem");
 }
@@ -101,6 +110,8 @@ test_sbrk(void)
   }
   during = si.freemem;
 
+  // Ngoài N trang dữ liệu, uvmalloc() có thể cấp thêm page-table page khi
+  // vùng mới cần một bảng trang cấp dưới chưa có; N+3 là cận trên có dư.
   check(before >= during &&
         before - during >= (uint64)TEST_ALLOC_PAGES * TEST_PGSIZE &&
         before - during <= (uint64)(TEST_ALLOC_PAGES + 3) * TEST_PGSIZE,
@@ -117,6 +128,8 @@ test_sbrk(void)
   }
   after = si.freemem;
 
+  // sbrk(-N) chỉ trả lại các trang lá; page-table page được giữ đến khi
+  // tiến trình thoát, nên freemem tăng đúng N trang so với lúc sau cấp phát.
   check(after >= during && after - during == (uint64)amount,
         "F4: giai phong N trang tang dung N*PGSIZE byte");
 }
@@ -137,6 +150,8 @@ test_fork(void)
   uint64 after = 0;
   char token = 'x';
 
+  // Pipe được tạo trước lần đo đầu nên trang của pipe không làm lệch kết quả.
+  // Con chặn ở read() để còn sống trong lúc cha đo, rồi thoát khi cha ghi.
   if(pipe(p) < 0) {
     check(0, "F5: fork lam giam freemem khi child con song");
     check(0, "F5: freemem tro lai muc truoc fork sau wait");
@@ -176,6 +191,8 @@ test_fork(void)
   if(after_ok)
     after = si.freemem;
 
+  // Sau wait(), bộ nhớ user, page table và trapframe của con đã được trả
+  // lại, nên freemem phải đúng bằng giá trị trước fork.
   check(before_ok && during_ok && during < before,
         "F5: fork lam giam freemem khi child con song");
   check(signaled && waited == pid && status == 0,
@@ -203,6 +220,8 @@ test_process_fields(void)
 static void
 test_bad_pointers(void)
 {
+  // Địa chỉ 0 và main nằm trong trang text không có PTE_W nên copyout() từ
+  // chối; 1 << 38 chính là MAXVA.
   check(sysinfo((struct sysinfo *)0) < 0,
         "F7: con tro NULL bi tu choi");
   check(sysinfo((struct sysinfo *)(uint64)main) < 0,
